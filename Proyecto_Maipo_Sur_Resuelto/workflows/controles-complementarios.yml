@@ -1,0 +1,65 @@
+name: controles-complementarios
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Analisis estatico Semgrep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Instalar Semgrep OSS
+        run: python -m pip install semgrep
+      - name: Verificar patrones inseguros
+        run: semgrep scan --metrics off --config .semgrep.yml --error lector_cloro.py scripts/ escenarios/
+
+  trivy:
+    name: Inventario y configuracion Trivy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Trivy - analisis de dependencias
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          version: v0.76.0
+          scanners: vuln
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+      - name: Trivy - infraestructura ficticia
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: config
+          scan-ref: ./escenarios/transporte/infra
+          version: v0.76.0
+          format: table
+          exit-code: '1'
+
+  osv:
+    name: Revisión OSV de dependencias
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    with:
+      scan-args: |-
+        --lockfile=requirements.txt:./escenarios/energia/requirements.in
+
+# Antes de producción, fijar acciones externas a SHA completos verificados.
+# Trivy no utiliza la versión de herramienta v0.69.4.
