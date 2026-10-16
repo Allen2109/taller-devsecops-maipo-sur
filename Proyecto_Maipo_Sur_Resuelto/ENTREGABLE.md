@@ -1,35 +1,74 @@
-# Ficha de blindaje — Planta Maipo Sur | Equipo 1: Agua
-**Fecha:** 09-10-2026 · **Integrantes y roles:** operador [ ], desarrollador [ ], pipeline [ ], auditor IA [ ], relator [ ].  
-**Estado:** pruebas locales aprobadas; enlaces y resultados reales de GitHub Actions pendientes.
+# Ficha de blindaje — Maipo Sur
 
-## 1. Sistema y diagrama
-**Operador → HMI/servicio web → PLC ficticio → cloración ficticia.** La implementación solo devuelve una lectura simulada de 0,7 mg/L; **no controla equipos reales**. El repositorio es revisado por CI y un operador autoriza cualquier cambio.
+**Equipo:** Daniel Silva · Allen Ramirez · Antonella Mancilla  
+**Curso:** SIST AUTO DEVSECOPS · Universidad Bernardo O'Higgins  
+**Fecha de preparación:** 16 de octubre de 2026  
+**Sector principal:** agua potable simulada. Se agregaron casos complementarios de energía, salud y transporte.
 
-## 2. Amenazas priorizadas (STRIDE)
-| Amenaza | Impacto físico hipotético | Control |
-|---|---|---|
-| 1. Suplantación / filtración de clave | Alteración de dosificación; se requiere comprobar la calidad del agua. | Gitleaks, secreto fuera del código y rotación. |
-| 2. Manipulación / elevación de privilegios | Cambio de parámetros sin autorización. | Mínimo privilegio, validación y revisión humana. |
-| 3. Denegación de servicio | Pérdida de visibilidad del tratamiento. | Pruebas, monitoreo y continuidad operativa. |
+> No copiar contraseñas ni inventar resultados de GitHub Actions. Los controles locales y remotos tienen alcances distintos.
+
+## 1. Sistema y equipo
+
+**Sistema:** lector simulado de valores de cloro en una planta ficticia.  
+**Objetivo:** impedir que cambios no revisados introduzcan secretos, patrones inseguros o configuraciones abiertas.  
+**Integrantes:** Daniel Silva, Allen Ramirez y Antonella Mancilla.  
+**Roles:** repartir entre el equipo antes de exponer: operación/impacto, desarrollo/pipeline, y auditoría/relatoría.  
+**Diagrama:** [ver diagrama propio](docs/arquitectura/maipo-sur.svg).
+
+## 2. Tres amenazas priorizadas (STRIDE)
+
+| Riesgo | Categoría | Impacto potencial | Control previsto |
+|---|---|---|---|
+| Credencial del controlador en un archivo público | Filtración / suplantación | Acceso no autorizado al sistema de supervisión, con riesgo de interrupción del servicio | Gitleaks y uso de una variable de entorno; rotación obligatoria en sistema real |
+| Cambio no validado en órdenes de la HMI | Manipulación / elevación | Indicaciones incorrectas a un controlador, con riesgo para la continuidad del servicio | Revisión de cambios, mínimo privilegio, tests y validación operacional previa |
+| Servicio o componente vulnerable | Denegación / manipulación | Pérdida de disponibilidad y retraso en supervisión | Revisión de dependencias (Trivy, OSV) y pruebas antes del despliegue |
+
+**Alcance:** los controles de GitHub detectan clases de riesgo del software, **no** aseguran una planta física; el enlace entre TI y TO requiere protecciones y aprobaciones externas.
 
 ## 3. Controles y evidencia
-**Incluidos:** Gitleaks (secretos), Semgrep (código), Trivy (dependencias/configuración/SBOM), OSV-Scanner (dependencias) y pruebas locales (aprobadas). **GitHub Actions:** [URL REAL PENDIENTE]. **Repositorio:** [URL]. **SBOM CycloneDX:** [ENLACE/ARCHIVO]. **Evidencia del fallo y la corrección:** [CAPTURAS / URL]. No afirmar CI en verde antes de ejecutarla.
 
-## 4. Hallazgo y decisión
-| Hallazgo | Gravedad | Decisión justificada | Responsable |
-|---|---|---|---|
-| Credencial de laboratorio literal en `config.yaml` inicial | Crítica didáctica | **Corregir:** cambiar por `password_env: PLC_PASSWORD`, guardar secreto ficticio en Actions. En una planta real, revocar/rotar y revisar accesos. | Desarrollador + operador · 09-10-2026 (propuesto) |
-| Posible exposición histórica | Alta | **Postergar con bloqueo de uso real:** remediar historial solo mediante procedimiento controlado. | Seguridad · [FECHA] |
-| Actions fijadas por etiqueta, no SHA | Media | **Postergar con fecha:** verificar y fijar identificadores inmutables antes de producción. | Responsable CI · [FECHA] |
+| Control | Comprobación | Estado |
+|---|---|---|
+| Tests de Python + revisión sectorial | `python -m unittest discover -s tests -v` | Validar localmente / ver registro en evidencias |
+| Gitleaks | Archivos actuales y reglas de laboratorio | Pendiente de ejecución de GitHub Actions |
+| Semgrep | Reglas de `shell=True` y validación TLS | Pendiente de ejecución en Actions |
+| Trivy | Dependencias e infraestructura simulada | Pendiente de ejecución en Actions |
+| OSV-Scanner | Revisión del material de dependencias | Pendiente de ejecución en Actions |
 
-## 5. Auditoría del parche de IA — **RECHAZAR / NO FUSIONAR**
-1. **Paquete:** `plc_helper_utils` sin origen y versión acreditados en el parche.
-2. **Entradas:** concatena `host`/`registro` en `subprocess.run(..., shell=True)`.
-3. **Protección:** `verify=False` elimina validación TLS.
-4. **Datos:** `TELEMETRIA` recibe lecturas sin destino/autorización documentados.
+**Enlace integración:** [abrir Actions](https://github.com/Allen2109/taller-devsecops-maipo-sur/actions/workflows/ci.yml) — pegar URL de una ejecución real: `PENDIENTE`.  
+**Enlace seguridad:** [abrir Actions](https://github.com/Allen2109/taller-devsecops-maipo-sur/actions/workflows/seguridad.yml) — pegar URL de una ejecución real: `PENDIENTE`.
 
-**Explicación al operador:** «El parche podría permitir instrucciones no autorizadas y enviar datos operativos a un destino desconocido. En una planta real podría comprometer la continuidad y seguridad del tratamiento». La decisión es humana.
+## 4. Hallazgo, impacto y decisión
 
-## 6. Pendientes y reproducción
-Antes de uso real: validar en laboratorio OT, rotar credenciales, revisar accesos, asegurar zonas de red, aprobar cambios y fijar acciones por SHA. **No desplegar esta simulación.**  
-`python scripts/validar_config.py` · `python scripts/prueba_funcional.py` · `python -m unittest discover -s tests -v`
+**Hallazgo inicial del escenario agua:** una credencial escrita directamente en `config.yaml` (ejercicio ficticio).  
+**Gravedad:** alta, si existiera en una instalación real.  
+**Decisión:** corregir, referenciando el nombre `PLC_PASSWORD` sin guardar el valor en el repositorio.  
+**Responsable:** equipo de desarrollo; **verificación:** equipo de revisión mediante Actions.  
+**Estado actual del archivo de ejemplo:** `password_env: PLC_PASSWORD`; esto puede comprobarse inspeccionando el código.  
+**Pendiente real:** si hubiera existido una credencial auténtica, sería imprescindible revocarla/rotarla e investigar el historial; este laboratorio no realiza esa operación.
+
+## 5. Auditoría humana del parche escrito por IA
+
+**Veredicto: RECHAZAR la propuesta #7 mientras no sea rediseñada y auditada.**
+
+1. **Paquete:** `plc_helper_utils` carece de verificación acreditada; no se presume legítimo ni se declara inexistente sin consultar un registro real.
+2. **Entradas:** la propuesta mezcla datos de entrada en comandos con `shell=True`; peligro de ejecución no prevista.
+3. **Protección:** `verify=False` desactiva la comprobación del certificado TLS.
+4. **Destino de datos:** `TELEMETRIA` no posee autorización y justificación documentadas.
+
+[Evidencia técnica explicada y requisitos para una alternativa segura](docs/auditoria-ia/veredicto.md).
+
+## 6. Pendientes antes de un despliegue real
+
+La aplicación no tiene conectividad operacional. Faltarían una evaluación industrial específica, gestión de identidades, cambios aprobados, ventanas de mantenimiento, monitoreo, pruebas bajo supervisión y auditoría del historial de secretos.
+
+## 7. Reproducción
+
+```bash
+python -m unittest discover -s tests -v
+python scripts/revisar_sector.py todos
+python scripts/generar_sbom.py
+```
+
+**Modalidad del ejemplo:** análisis de archivos actuales; no certifica el historial.  
+**Evidencia comprobada y pendiente:** [evidencias/VALIDACION.md](evidencias/VALIDACION.md).

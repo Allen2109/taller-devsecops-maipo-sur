@@ -1,3 +1,3 @@
-# Simulación: nombre de variable, nunca una contraseña real.
+planta: Maipo Sur (simulada)
 password_env: PLC_PASSWORD
-modo: simulacion
+lectura_simulada_mg_l: 0.7

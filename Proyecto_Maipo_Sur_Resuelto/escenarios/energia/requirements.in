@@ -1,0 +1,2 @@
+# Versión fija solo como ejemplo pedagógico; revisar CVE actuales.
+requests==2.32.3
