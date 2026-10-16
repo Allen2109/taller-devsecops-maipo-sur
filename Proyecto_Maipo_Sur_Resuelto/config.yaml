@@ -1,0 +1,3 @@
+# Simulación: nombre de variable, nunca una contraseña real.
+password_env: PLC_PASSWORD
+modo: simulacion

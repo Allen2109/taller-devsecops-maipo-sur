@@ -1,0 +1,2 @@
+# El servicio simulado utiliza exclusivamente la biblioteca estándar de Python.
+# No hay paquetes de terceros en esta versión; Trivy/OSV reportarán lo que encuentren.
